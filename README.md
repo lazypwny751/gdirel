@@ -1,0 +1,2 @@
+# gdirel
+Get Distribution Information
