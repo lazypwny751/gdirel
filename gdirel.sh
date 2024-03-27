@@ -1,13 +1,12 @@
 #!/bin/sh
 
+# Required packages: coreutils and gawk
+
 set -e
-export table="false"
+export verbose="false"
 
 kernel_release() {
-    while IFS="" read -r line
-        do
-        echo "${line}"
-    done < "/proc/version"
+    cat "/proc/version" | gawk "{ print(\$1, \$2, \$3); }"
 }
 
 distribution() {
@@ -32,10 +31,10 @@ packagemngr() {
     elif [ -f "/etc/pacman.conf" ] && [ -f "$(command -v pacman)" ]
         then
         command -v pacman
-    elif [ -d "" ]
+    elif [ -f "/etc/dnf/dnf.conf" ] && [ -f "$(command -v dnf)" ]
         then
         command -v dnf
-    elif [ -d "" ]
+    elif [ -d "/etc/zypp" ] && [ -f "$(command -v zypper)" ]
         then
         command -v zypper
     else
@@ -43,38 +42,95 @@ packagemngr() {
     fi
 }
 
-while getopts :komnpcth opt
+packages() {
+    case "${1}" in
+        ("apt")
+            dpkg -l | head -n -5 | wc -l
+        ;;
+        ("pacman")
+            pacman -Qq | wc -l
+        ;;
+        ("dnf")
+            dnf list installed | tail -n +3 | wc -l
+        ;;
+        ("zypper")
+            zypper se --installed-only | tail -n +5 | wc -l
+        ;;
+        (*)
+            echo "null"
+        ;;
+    esac
+}
+
+processor() {
+    gawk -F ": " "/model name/ { print(\$2); exit; }" "/proc/cpuinfo"
+}
+
+corenum() {
+    gawk -F ": " "/model name/ { count++ } END { print(count); }" "/proc/cpuinfo"
+}
+
+while getopts :komnpcavh opt
     do
         case "${opt}" in
             ("k")
-                # printf "Kernel Release: "
+                if "${verbose:-false}"
+                    then 
+                        printf "Kernel Release: " 
+                fi
                 kernel_release
             ;;
             ("o")
-                # printf "Distribution Name: "
+                if "${verbose:-false}"
+                    then 
+                        printf "Distribution Name: "
+                fi
                 distribution
             ;;
             ("m")
                 export pkgm="$(packagemngr)"
-                # echo "Package Manager: ${pkgm##*/}"
+                if "${verbose:-false}"
+                    then 
+                        printf "Package Manager: "
+                fi
                 echo "${pkgm##*/}"
             ;;
             ("n")
-                # export pkgm="$(packagemngr)"
-                # echo "Package installed via ${pkgm##*/}: "
+                export pkgm="$(packagemngr)"
+                if "${verbose:-false}"
+                    then 
+                        printf "Package(s) installed via ${pkgm##*/}: "
+                fi
+                packages "${pkgm##*/}"
             ;;
             ("p")
-                echo "processor name."
+                if "${verbose:-false}"
+                    then 
+                        printf "Processor: "
+                fi
+                processor
             ;;
             ("c")
-                echo "core number"
+                if "${verbose:-false}"
+                    then 
+                        printf "CPU(s): "
+                fi
+                corenum
             ;;
-            ("t")
-                if "${table:-false}"
+            ("a")
+                if "${verbose}"
                     then
-                    export table="false"
+                        echo "with verbose all"
                 else
-                    export table="true"
+                    echo "all"
+                fi
+            ;;
+            ("v")
+                if "${verbose:-false}"
+                    then
+                    export verbose="false"
+                else
+                    export verbose="true"
                 fi
             ;;
             ("h")
