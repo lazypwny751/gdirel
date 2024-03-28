@@ -3,7 +3,7 @@
 # Required packages: coreutils and gawk
 
 set -e
-export verbose="false"
+export verbose="false" help="false"
 
 kernel_release() {
     cat "/proc/version" | gawk "{ print(\$1, \$2, \$3); }"
@@ -74,6 +74,7 @@ while getopts :komnpcavh opt
     do
         case "${opt}" in
             ("k")
+                export help="true"
                 if "${verbose:-false}"
                     then 
                         printf "Kernel Release: " 
@@ -81,6 +82,7 @@ while getopts :komnpcavh opt
                 kernel_release
             ;;
             ("o")
+                export help="true"
                 if "${verbose:-false}"
                     then 
                         printf "Distribution Name: "
@@ -88,6 +90,7 @@ while getopts :komnpcavh opt
                 distribution
             ;;
             ("m")
+                export help="true"
                 export pkgm="$(packagemngr)"
                 if "${verbose:-false}"
                     then 
@@ -96,6 +99,7 @@ while getopts :komnpcavh opt
                 echo "${pkgm##*/}"
             ;;
             ("n")
+                export help="true"
                 export pkgm="$(packagemngr)"
                 if "${verbose:-false}"
                     then 
@@ -104,6 +108,7 @@ while getopts :komnpcavh opt
                 packages "${pkgm##*/}"
             ;;
             ("p")
+                export help="true"
                 if "${verbose:-false}"
                     then 
                         printf "Processor: "
@@ -111,6 +116,7 @@ while getopts :komnpcavh opt
                 processor
             ;;
             ("c")
+                export help="true"
                 if "${verbose:-false}"
                     then 
                         printf "CPU(s): "
@@ -118,11 +124,26 @@ while getopts :komnpcavh opt
                 corenum
             ;;
             ("a")
+                export help="true"
                 if "${verbose}"
                     then
-                        echo "with verbose all"
+                        export pkgm="$(packagemngr)"
+                    cat <<VALL
+Kernel Release: $(kernel_release)
+Distribution Name: $(distribution)
+Package Manager: ${pkgm##*/}
+Package(s) installed via ${pkgm##*/}: $(packages "${pkgm##*/}")
+Processor: $(processor)
+CPU(s): $(corenum)
+VALL
                 else
-                    echo "all"
+                    export pkgm="$(packagemngr)"
+                    kernel_release
+                    distribution
+                    echo "${pkgm##*/}"
+                    packages "${pkgm##*/}"
+                    processor
+                    corenum
                 fi
             ;;
             ("v")
@@ -134,13 +155,27 @@ while getopts :komnpcavh opt
                 fi
             ;;
             ("h")
-                echo "
-"
+                printf "${0##*/} usage:
+\t-k\tprint current kernel release.
+\t-o\tprint distribution name.
+\t-m\tprint current/native package manager name.
+\t-n\thow many packages are installed with current/native package manager.
+\t-p\tprint processor model.
+\t-c\tprint the cpu have how many cores.
+\t-a\tprint all informations above.
+\t-v\tprint with verbose \"add header like (any: x)\".
+\t-h\tprint this screen.
+
+Pull requests are open: https://github.com/lazypwny751/gdirel \n"
                 exit 0
             ;;
             (\?)
-                echo "unknown option, type \"sh ${0##*/} -h\" for more information."
-                exit 1
+                echo "\"-${OPTARG}\" is an unknown option, type \"sh ${0##*/} -h\" for more information."
             ;;
         esac
 done
+
+if ! "${help}"
+    then
+    echo "If you don't know how to use it, you can start by typing \"sh ${0##*/} -va\", for more details type \"sh ${0##*/} -h\"."
+fi
