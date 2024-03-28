@@ -3,7 +3,7 @@
 # Required packages: coreutils and gawk
 
 set -e
-export verbose="false" help="false"
+export verbose="false" help="true"
 
 kernel_release() {
     cat "/proc/version" | gawk "{ print(\$1, \$2, \$3); }"
@@ -62,6 +62,21 @@ packages() {
     esac
 }
 
+desktop() {
+    if [ -n "${DESKTOP_SESSION}" ]
+        then
+            echo "${DESKTOP_SESSION}"
+    elif [ -n "${XDG_SESSION_DESKTOP}" ]
+        then
+            echo "${XDG_SESSION_DESKTOP}"
+    elif [ -n "${XDG_CURRENT_DESKTOP}" ]
+        then
+            echo "${XDG_CURRENT_DESKTOP}"
+    else
+        echo "Unknown Desktop Environment."
+    fi
+}
+
 processor() {
     gawk -F ": " "/model name/ { print(\$2); exit; }" "/proc/cpuinfo"
 }
@@ -70,11 +85,11 @@ corenum() {
     gawk -F ": " "/model name/ { count++ } END { print(count); }" "/proc/cpuinfo"
 }
 
-while getopts :komnpcavh opt
+while getopts :komndpcavh opt
     do
         case "${opt}" in
             ("k")
-                export help="true"
+                export help="false"
                 if "${verbose:-false}"
                     then 
                         printf "Kernel Release: " 
@@ -82,7 +97,7 @@ while getopts :komnpcavh opt
                 kernel_release
             ;;
             ("o")
-                export help="true"
+                export help="false"
                 if "${verbose:-false}"
                     then 
                         printf "Distribution Name: "
@@ -90,7 +105,7 @@ while getopts :komnpcavh opt
                 distribution
             ;;
             ("m")
-                export help="true"
+                export help="false"
                 export pkgm="$(packagemngr)"
                 if "${verbose:-false}"
                     then 
@@ -99,7 +114,7 @@ while getopts :komnpcavh opt
                 echo "${pkgm##*/}"
             ;;
             ("n")
-                export help="true"
+                export help="false"
                 export pkgm="$(packagemngr)"
                 if "${verbose:-false}"
                     then 
@@ -107,8 +122,16 @@ while getopts :komnpcavh opt
                 fi
                 packages "${pkgm##*/}"
             ;;
+            ("d")
+                export help="false"
+                if "${verbose:-false}"
+                    then
+                        printf "Default Desktop/Window Manager: "
+                fi
+                desktop
+            ;;
             ("p")
-                export help="true"
+                export help="false"
                 if "${verbose:-false}"
                     then 
                         printf "Processor: "
@@ -116,7 +139,7 @@ while getopts :komnpcavh opt
                 processor
             ;;
             ("c")
-                export help="true"
+                export help="false"
                 if "${verbose:-false}"
                     then 
                         printf "CPU(s): "
@@ -124,7 +147,7 @@ while getopts :komnpcavh opt
                 corenum
             ;;
             ("a")
-                export help="true"
+                export help="false"
                 if "${verbose}"
                     then
                         export pkgm="$(packagemngr)"
@@ -133,6 +156,7 @@ Kernel Release: $(kernel_release)
 Distribution Name: $(distribution)
 Package Manager: ${pkgm##*/}
 Package(s) installed via ${pkgm##*/}: $(packages "${pkgm##*/}")
+Default Desktop/Window Manager: $(desktop)
 Processor: $(processor)
 CPU(s): $(corenum)
 VALL
@@ -142,6 +166,7 @@ VALL
                     distribution
                     echo "${pkgm##*/}"
                     packages "${pkgm##*/}"
+                    desktop
                     processor
                     corenum
                 fi
@@ -160,6 +185,7 @@ VALL
 \t-o\tprint distribution name.
 \t-m\tprint current/native package manager name.
 \t-n\thow many packages are installed with current/native package manager.
+\t-d\tprint current desktop environment or window manager.
 \t-p\tprint processor model.
 \t-c\tprint the cpu have how many cores.
 \t-a\tprint all informations above.
@@ -175,7 +201,7 @@ Pull requests are open: https://github.com/lazypwny751/gdirel \n"
         esac
 done
 
-if ! "${help}"
+if "${help}"
     then
     echo "If you don't know how to use it, you can start by typing \"sh ${0##*/} -va\", for more details type \"sh ${0##*/} -h\"."
 fi

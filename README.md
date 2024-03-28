@@ -17,6 +17,7 @@ gdirel.sh usage:
 	-o	print distribution name.
 	-m	print current/native package manager name.
 	-n	how many packages are installed with current/native package manager.
+	-d	print current desktop environment or window manager.
 	-p	print processor model.
 	-c	print the cpu have how many cores.
 	-a	print all informations above.
